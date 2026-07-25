@@ -8,56 +8,54 @@ echo    🐻 TELEGRAM MUSIC BOT
 echo ========================================
 echo.
 
-echo 🔍 Проверяем Python...
+echo 🔍 جاري التحقق من Python...
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ❌ Python не найден! Установите Python 3.8+
-    echo 📥 Скачать: https://www.python.org/downloads/
+    echo ❌ Python غير موجود! يرجى تثبيت Python 3.8+
+    echo 📥 تحميل: https://www.python.org/downloads/
     pause
     exit /b 1
 )
 
-echo ✅ Python найден
+echo ✅ Python موجود
 echo.
 
-echo 🔍 Проверяем файл music_bot.py...
+echo 🔍 جاري التحقق من ملف music_bot.py...
 if not exist "music_bot.py" (
-    echo ❌ Файл music_bot.py не найден!
+    echo ❌ ملف music_bot.py غير موجود!
     pause
     exit /b 1
 )
 
-echo ✅ Файл music_bot.py найден
+echo ✅ ملف music_bot.py موجود
 echo.
 
-echo 🔍 Проверяем файл tracks.json...
+echo 🔍 جاري التحقق من ملف tracks.json...
 if not exist "tracks.json" (
-    echo ⚠️ Файл tracks.json не найден, создаем пустой...
+    echo ⚠️ ملف tracks.json غير موجود، جاري إنشاء ملف فارغ...
     echo {} > tracks.json
 )
 
-echo ✅ Файл tracks.json готов
+echo ✅ ملف tracks.json جاهز
 echo.
 
-echo 🔍 Проверяем папку cache...
+echo 🔍 جاري التحقق من مجلد cache...
 if not exist "cache" (
-    echo 📁 Создаем папку cache...
+    echo 📁 جاري إنشاء مجلد cache...
     mkdir cache
 )
 
-echo ✅ Папка cache готова
+echo ✅ مجلد cache جاهز
 echo.
 
-echo 🚀 Запускаем бота...
+echo 🚀 جاري تشغيل البوت...
 echo.
-echo 💡 Для остановки бота нажмите Ctrl+C
-echo 💡 Окно можно закрыть
+echo 💡 لإيقاف البوت اضغط Ctrl+C
+echo 💡 يمكن إغلاق النافذة
 echo.
 
 python music_bot.py
 
 echo.
-echo ❌ Бот остановлен
+echo ❌ تم إيقاف البوت
 pause
-
-
