@@ -9,7 +9,7 @@ import aiohttp
 import signal
 import sys
 
-# Настройка логирования
+# إعدادات التسجيل
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -18,40 +18,40 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Глобальные переменные для управления потоками
+# متغيرات عامة للتحكم في الخيوط
 bot_thread = None
 bot_running = False
 keep_alive_thread = None
 shutdown_event = threading.Event()
 
-# Graceful shutdown handler
+# معالج إيقاف التشغيل الآمن
 def signal_handler(signum, frame):
-    """Обработчик сигналов для graceful shutdown"""
-    logger.info(f"📴 Получен сигнал {signum}, начинаю graceful shutdown...")
+    """معالج الإشارات لإيقاف التشغيل الآمن"""
+    logger.info(f"📴 تم استلام إشارة {signum}، بدء إيقاف التشغيل الآمن...")
     shutdown_event.set()
     
-    # Останавливаем бота
+    # إيقاف البوت
     global bot_running
     bot_running = False
     
-    # Ждем завершения потоков
+    # انتظار انتهاء الخيوط
     if bot_thread and bot_thread.is_alive():
-        logger.info("⏳ Ожидаю завершения потока бота...")
+        logger.info("⏳ انتظار انتهاء خيط البوت...")
         bot_thread.join(timeout=10)
     
     if keep_alive_thread and keep_alive_thread.is_alive():
-        logger.info("⏳ Ожидаю завершения keep alive потока...")
+        logger.info("⏳ انتظار انتهاء خيط البقاء على قيد الحياة...")
         keep_alive_thread.join(timeout=5)
     
-    logger.info("✅ Graceful shutdown завершен")
+    logger.info("✅ تم إكمال إيقاف التشغيل الآمن")
     sys.exit(0)
 
-# Регистрируем обработчики сигналов
+# تسجيل معالجات الإشارات
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 async def async_health_check():
-    """Асинхронная проверка здоровья бота"""
+    """فحص صحي غير متزامن للبوت"""
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get("http://localhost:10000/health", timeout=3) as response:
@@ -63,7 +63,7 @@ async def async_health_check():
         return False, str(e)
 
 async def async_external_ping():
-    """Асинхронный ping внешних сервисов"""
+    """اختبار اتصال غير متزامن للخدمات الخارجية"""
     external_services = [
         "https://httpbin.org/get",
         "https://api.github.com",
@@ -86,7 +86,7 @@ def home():
     return jsonify({
         "status": "running",
         "bot_status": "running" if bot_running else "stopped",
-        "message": "Telegram Music Bot is running on Render",
+        "message": "بوت الموسيقى يعمل على Render",
         "endpoints": {
             "home": "/",
             "health": "/health",
@@ -99,15 +99,15 @@ def home():
 
 @app.route('/health')
 def health():
-    """Улучшенный health endpoint для Render"""
+    """نقطة فحص صحي محسّنة لـ Render"""
     try:
-        # Проверяем статус бота
+        # التحقق من حالة البوت
         bot_alive = bot_running and bot_thread and bot_thread.is_alive()
         
-        # Проверяем статус keep alive
+        # التحقق من حالة خيط البقاء على قيد الحياة
         keep_alive_alive = keep_alive_thread and keep_alive_thread.is_alive()
         
-        # Проверяем доступность внешних сервисов (синхронно для Render)
+        # التحقق من توفر الخدمات الخارجية (بشكل متزامن لـ Render)
         external_status = {}
         external_services = [
             "https://httpbin.org/get",
@@ -121,29 +121,29 @@ def health():
                 response = requests.get(service, timeout=3)
                 response_time = time.time() - start_time
                 external_status[service] = {
-                    "status": "healthy",
+                    "status": "sana",
                     "response_time": response_time,
                     "status_code": response.status_code
                 }
             except Exception as e:
                 external_status[service] = {
-                    "status": "unhealthy",
+                    "status": "غير صحي",
                     "error": str(e)
                 }
         
-        # Общий статус системы
-        overall_status = "healthy"
+        # الحالة العامة للنظام
+        overall_status = "صحي"
         if not bot_alive:
-            overall_status = "degraded"
+            overall_status = "متعطل جزئياً"
         if not keep_alive_alive:
-            overall_status = "degraded"
+            overall_status = "متعطل جزئياً"
         
-        # Проверяем количество здоровых внешних сервисов
-        healthy_services = sum(1 for s in external_status.values() if s.get("status") == "healthy")
+        # التحقق من عدد الخدمات الخارجية الصحية
+        healthy_services = sum(1 for s in external_status.values() if s.get("status") == "sana")
         if healthy_services == 0:
-            overall_status = "unhealthy"
+            overall_status = "غير صحي"
         
-        # Проверяем, что мы в Render
+        # التحقق من أننا في Render
         is_render = os.environ.get('RENDER', False)
         render_info = {}
         if is_render:
@@ -156,9 +156,9 @@ def health():
         return jsonify({
             "status": overall_status,
             "timestamp": time.time(),
-            "bot_status": "running" if bot_alive else "stopped",
+            "bot_status": "يعمل" if bot_alive else "متوقف",
             "bot_thread_alive": bot_thread.is_alive() if bot_thread else False,
-            "keep_alive_status": "running" if keep_alive_alive else "stopped",
+            "keep_alive_status": "يعمل" if keep_alive_alive else "متوقف",
             "keep_alive_thread_alive": keep_alive_thread.is_alive() if keep_alive_thread else False,
             "external_services": external_status,
             "external_services_summary": {
@@ -172,64 +172,62 @@ def health():
                 "is_render": is_render,
                 "info": render_info
             },
-            "memory_usage": "N/A"  # Можно добавить psutil для мониторинга памяти
+            "memory_usage": "غير متاح"
         })
     except Exception as e:
-        logger.error(f"Health check error: {e}")
+        logger.error(f"خطأ في الفحص الصحي: {e}")
         return jsonify({
-            "status": "unhealthy",
+            "status": "غير صحي",
             "error": str(e),
             "timestamp": time.time()
         }), 500
 
 @app.route('/status')
 def status():
-    """Алиас для /health для совместимости"""
+    """اسم بديل لـ /health للتوافق"""
     return health()
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Webhook endpoint для Telegram Bot API"""
+    """نقطة Webhook لـ Telegram Bot API"""
     try:
-        # Получаем обновление от Telegram
+        # استلام التحديث من تيليجرام
         update = request.get_json()
         
-        # Логируем полученное обновление
-        logger.info(f"Received webhook update: {update.get('update_id', 'unknown')}")
+        # تسجيل التحديث المستلم
+        logger.info(f"تم استلام تحديث webhook: {update.get('update_id', 'غير معروف')}")
         
-        # Проверяем статус бота
-        logger.info(f"Bot status: bot_thread={bot_thread}, bot_running={bot_running}")
+        # التحقق من حالة البوت
+        logger.info(f"حالة البوت: bot_thread={bot_thread}, bot_running={bot_running}")
         
-        # Обрабатываем обновление через диспетчер бота
+        # معالجة التحديث عبر مدير البوت
         if bot_thread and bot_running:
             try:
-                # Импортируем функцию для обработки webhook обновлений
+                # استيراد دالة معالجة تحديثات webhook
                 from music_bot import process_webhook_update
                 import asyncio
                 
-                # Используем существующий event loop из потока бота для ускорения
-                # Передаем обновление в очередь бота без создания нового loop
+                # استخدام حلقة أحداث موجودة من خيط البوت لتسريع المعالجة
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 loop.run_until_complete(process_webhook_update(update))
                 loop.close()
                 
-                logger.info(f"Update {update.get('update_id', 'unknown')} queued for processing")
+                logger.info(f"تم وضع التحديث {update.get('update_id', 'غير معروف')} في قائمة المعالجة")
                 
             except Exception as e:
-                logger.error(f"Error processing update: {e}")
-                # Если обработка не удалась, возвращаем ошибку
-                return jsonify({"status": "error", "message": f"Failed to process update: {str(e)}"}), 500
+                logger.error(f"خطأ في معالجة التحديث: {e}")
+                return jsonify({"status": "error", "message": f"فشل في معالجة التحديث: {str(e)}"}), 500
         else:
-            logger.warning(f"Bot not ready: bot_thread={bot_thread}, bot_running={bot_running}")
-            # Попробуем запустить бота автоматически
+            logger.warning(f"البوت غير جاهز: bot_thread={bot_thread}, bot_running={bot_running}")
+            # محاولة تشغيل البوت تلقائياً
             if not bot_running:
-                logger.info("Attempting to start bot automatically...")
+                logger.info("محاولة تشغيل البوت تلقائياً...")
                 try:
                     start_bot()
-                    logger.info("Bot started automatically from webhook")
+                    logger.info("تم تشغيل البوت تلقائياً من webhook")
                     
-                    # Теперь попробуем обработать обновление
+                    # الآن محاولة معالجة التحديث
                     try:
                         from music_bot import process_webhook_update
                         import asyncio
@@ -239,111 +237,111 @@ def webhook():
                         loop.run_until_complete(process_webhook_update(update))
                         loop.close()
                         
-                        logger.info(f"Update {update.get('update_id', 'unknown')} processed after auto-start")
+                        logger.info(f"تم معالجة التحديث {update.get('update_id', 'غير معروف')} بعد التشغيل التلقائي")
                         
                     except Exception as process_error:
-                        logger.error(f"Failed to process update after auto-start: {process_error}")
-                        return jsonify({"status": "error", "message": f"Bot started but failed to process update: {str(process_error)}"}), 500
+                        logger.error(f"فشل في معالجة التحديث بعد التشغيل التلقائي: {process_error}")
+                        return jsonify({"status": "error", "message": f"تم تشغيل البوت لكن فشل في معالجة التحديث: {str(process_error)}"}), 500
                         
                 except Exception as e:
-                    logger.error(f"Failed to start bot automatically: {e}")
-                    return jsonify({"status": "error", "message": f"Failed to start bot: {str(e)}"}), 500
+                    logger.error(f"فشل في تشغيل البوت تلقائياً: {e}")
+                    return jsonify({"status": "error", "message": f"فشل في تشغيل البوت: {str(e)}"}), 500
             else:
-                return jsonify({"status": "error", "message": "Bot is starting up, please retry"}), 503
+                return jsonify({"status": "error", "message": "البوت قيد التشغيل، يرجى المحاولة مرة أخرى"}), 503
         
         return jsonify({"status": "ok"})
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        logger.error(f"خطأ في webhook: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 def run_bot_in_thread():
-    """Запускает бота в отдельном потоке с правильной обработкой асинхронности"""
+    """تشغيل البوت في خيط منفصل مع معالجة صحيحة للبرمجة غير المتزامنة"""
     global bot_running, shutdown_event
     
-    logger.info("🚀 Starting bot thread...")
+    logger.info("🚀 بدء خيط البوت...")
     try:
-        # Создаем новый event loop для этого потока
+        # إنشاء حلقة أحداث جديدة لهذا الخيط
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        logger.info("✅ Event loop created for bot thread")
+        logger.info("✅ تم إنشاء حلقة الأحداث لخيط البوت")
         
-        # Импортируем и запускаем бота через main_worker (без polling)
-        logger.info("📥 Importing main_worker from music_bot...")
+        # استيراد وتشغيل البوت عبر main_worker (بدون استقصاء)
+        logger.info("📥 استيراد main_worker من music_bot...")
         from music_bot import main_worker
-        logger.info("✅ main_worker imported successfully")
+        logger.info("✅ تم استيراد main_worker بنجاح")
         
-        logger.info("🚀 Starting main_worker...")
+        logger.info("🚀 بدء main_worker...")
         
-        # Запускаем main_worker с обработкой graceful shutdown
+        # تشغيل main_worker مع معالجة إيقاف التشغيل الآمن
         try:
             loop.run_until_complete(main_worker())
         except KeyboardInterrupt:
-            logger.info("📴 Получен сигнал прерывания в потоке бота")
+            logger.info("📴 تم استلام إشارة مقاطعة في خيط البوت")
         except Exception as e:
-            logger.error(f"❌ Ошибка в main_worker: {e}")
+            logger.error(f"❌ خطأ في main_worker: {e}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"تتبع الأخطاء: {traceback.format_exc()}")
         finally:
-            # Graceful shutdown для бота
+            # إيقاف تشغيل آمن للبوت
             if not shutdown_event.is_set():
-                logger.info("🔄 Перезапуск бота через 5 секунд...")
+                logger.info("🔄 إعادة تشغيل البوت بعد 5 ثوانٍ...")
                 time.sleep(5)
                 if not shutdown_event.is_set():
-                    # Рекурсивно перезапускаем бота
+                    # إعادة تشغيل البوت بشكل متكرر
                     bot_thread_new = threading.Thread(target=run_bot_in_thread, daemon=True)
                     bot_thread_new.start()
                     bot_thread = bot_thread_new
                     return
         
-        logger.info("✅ main_worker completed")
+        logger.info("✅ اكتمل main_worker")
         
     except Exception as e:
-        logger.error(f"❌ Bot thread error: {e}")
+        logger.error(f"❌ خطأ في خيط البوت: {e}")
         import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error(f"تتبع الأخطاء: {traceback.format_exc()}")
         
-        # Попытка перезапуска при критических ошибках
+        # محاولة إعادة التشغيل عند الأخطاء الحرجة
         if not shutdown_event.is_set():
-            logger.info("🔄 Попытка перезапуска бота через 10 секунд...")
+            logger.info("🔄 محاولة إعادة تشغيل البوت بعد 10 ثوانٍ...")
             time.sleep(10)
             if not shutdown_event.is_set():
                 try:
                     bot_thread_new = threading.Thread(target=run_bot_in_thread, daemon=True)
                     bot_thread_new.start()
                     bot_thread = bot_thread_new
-                    logger.info("✅ Бот перезапущен после критической ошибки")
+                    logger.info("✅ تم إعادة تشغيل البوت بعد خطأ حرج")
                 except Exception as restart_error:
-                    logger.error(f"❌ Не удалось перезапустить бота: {restart_error}")
+                    logger.error(f"❌ فشل في إعادة تشغيل البوت: {restart_error}")
                     bot_running = False
     finally:
         try:
             if 'loop' in locals() and loop and not loop.is_closed():
                 loop.close()
-                logger.info("✅ Event loop closed")
+                logger.info("✅ تم إغلاق حلقة الأحداث")
         except Exception as e:
-            logger.error(f"❌ Error closing event loop: {e}")
+            logger.error(f"❌ خطأ في إغلاق حلقة الأحداث: {e}")
         
-        # Помечаем бота как неактивного
+        # تعليم البوت كغير نشط
         bot_running = False
-        logger.info("📴 Бот помечен как неактивный")
+        logger.info("📴 تم تعليم البوت كغير نشط")
 
 @app.route('/start_bot', methods=['GET', 'POST'])
 def start_bot():
     global bot_thread, bot_running
     
     if bot_running:
-        return jsonify({"status": "already_running", "message": "Bot is already running"})
+        return jsonify({"status": "already_running", "message": "البوت يعمل بالفعل"})
     
     try:
-        # Запускаем бота в отдельном потоке с правильной обработкой асинхронности
+        # تشغيل البوت في خيط منفصل مع معالجة صحيحة للبرمجة غير المتزامنة
         bot_thread = threading.Thread(target=run_bot_in_thread, daemon=True)
         bot_thread.start()
         bot_running = True
         
-        logger.info("Bot started successfully")
-        return jsonify({"status": "started", "message": "Bot started successfully"})
+        logger.info("تم تشغيل البوت بنجاح")
+        return jsonify({"status": "started", "message": "تم تشغيل البوت بنجاح"})
     except Exception as e:
-        logger.error(f"Failed to start bot: {e}")
+        logger.error(f"فشل في تشغيل البوت: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/stop_bot', methods=['GET', 'POST'])
@@ -351,12 +349,12 @@ def stop_bot():
     global bot_running
     
     if not bot_running:
-        return jsonify({"status": "not_running", "message": "Bot is not running"})
+        return jsonify({"status": "not_running", "message": "البوت ليس قيد التشغيل"})
     
-    # Останавливаем бота (устанавливаем флаг)
+    # إيقاف البوت (تعيين العلم)
     bot_running = False
-    logger.info("Bot stop requested")
-    return jsonify({"status": "stopped", "message": "Bot stop requested"})
+    logger.info("تم طلب إيقاف البوت")
+    return jsonify({"status": "stopped", "message": "تم طلب إيقاف البوت"})
 
 @app.route('/bot_status')
 def bot_status():
@@ -369,7 +367,7 @@ def bot_status():
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({
-        "error": "Endpoint not found",
+        "error": "النقطة غير موجودة",
         "available_endpoints": {
             "home": "/",
             "health": "/health", 
@@ -383,18 +381,18 @@ def not_found(error):
 @app.errorhandler(405)
 def method_not_allowed(error):
     return jsonify({
-        "error": "Method not allowed",
-        "message": "This endpoint supports both GET and POST methods",
+        "error": "الطريقة غير مسموحة",
+        "message": "هذه النقطة تدعم كلاً من GET و POST",
         "endpoint": request.endpoint
     }), 405
 
 def render_keep_alive():
-    """Агрессивный keep alive для Render - каждые 30 секунд для предотвращения засыпания"""
+    """الحفاظ على النشاط بشكل قوي لـ Render - كل 30 ثانية لمنع السكون"""
     global bot_running, bot_thread, shutdown_event
     
-    logger.info("🚀 Агрессивный Render Keep Alive запущен (каждые 30 сек)")
+    logger.info("🚀 تم تشغيل الحفاظ على النشاط لـ Render (كل 30 ثانية)")
     
-    # Счетчики для мониторинга
+    # عدادات للمراقبة
     ping_count = 0
     error_count = 0
     
@@ -403,17 +401,17 @@ def render_keep_alive():
             ping_count += 1
             current_time = time.strftime("%H:%M:%S")
             
-            # 1. Простой health check
+            # 1. فحص صحي بسيط
             try:
                 response = requests.get("http://localhost:10000/health", timeout=3)
                 if response.status_code == 200:
-                    logger.info(f"💓 [{current_time}] Keep alive #{ping_count} - бот активен")
+                    logger.info(f"💓 [{current_time}] الحفاظ على النشاط #{ping_count} - البوت نشط")
                 else:
-                    logger.warning(f"⚠️ [{current_time}] Health check вернул статус: {response.status_code}")
+                    logger.warning(f"⚠️ [{current_time}] الفحص الصحي أعاد حالة: {response.status_code}")
             except Exception as e:
-                logger.warning(f"⚠️ [{current_time}] Health check не удался: {e}")
+                logger.warning(f"⚠️ [{current_time}] فشل الفحص الصحي: {e}")
             
-            # 2. Внешний ping для Render (предотвращает засыпание)
+            # 2. اختبار اتصال خارجي لـ Render (يمنع السكون)
             try:
                 external_services = [
                     "https://httpbin.org/get",
@@ -427,25 +425,25 @@ def render_keep_alive():
                     try:
                         response = requests.get(service, timeout=5)
                         if response.status_code in [200, 301, 302]:
-                            logger.info(f"🌐 [{current_time}] Внешний ping успешен: {service}")
+                            logger.info(f"🌐 [{current_time}] اختبار الاتصال الخارجي ناجح: {service}")
                             external_success = True
                             break
                     except Exception:
                         continue
                 
                 if not external_success:
-                    logger.warning(f"⚠️ [{current_time}] Все внешние пинги не удались")
+                    logger.warning(f"⚠️ [{current_time}] جميع اختبارات الاتصال الخارجي فشلت")
                         
             except Exception as e:
-                logger.warning(f"⚠️ [{current_time}] Внешний ping не удался: {e}")
+                logger.warning(f"⚠️ [{current_time}] فشل اختبار الاتصال الخارجي: {e}")
             
-            # 3. Проверяем статус бота
+            # 3. التحقق من حالة البوت
             if bot_running and bot_thread and bot_thread.is_alive():
-                logger.info(f"🤖 [{current_time}] Бот активен и работает")
+                logger.info(f"🤖 [{current_time}] البوت نشط ويعمل")
             else:
-                logger.warning(f"⚠️ [{current_time}] Бот неактивен, попытка перезапуска")
+                logger.warning(f"⚠️ [{current_time}] البوت غير نشط، محاولة إعادة التشغيل")
                 try:
-                    # Попытка перезапуска бота
+                    # محاولة إعادة تشغيل البوت
                     bot_running = False
                     time.sleep(2)
                     
@@ -454,26 +452,26 @@ def render_keep_alive():
                         bot_thread_new.start()
                         bot_running = True
                         bot_thread = bot_thread_new
-                        logger.info(f"🔄 [{current_time}] Бот перезапущен")
+                        logger.info(f"🔄 [{current_time}] تم إعادة تشغيل البوت")
                     
                 except Exception as restart_error:
-                    logger.error(f"❌ [{current_time}] Ошибка перезапуска бота: {restart_error}")
+                    logger.error(f"❌ [{current_time}] خطأ في إعادة تشغيل البوت: {restart_error}")
             
-            # 4. Сброс счетчика ошибок при успешном выполнении
+            # 4. إعادة تعيين عداد الأخطاء عند التنفيذ الناجح
             if error_count > 0:
-                logger.info(f"✅ [{current_time}] Сброс счетчика ошибок (было: {error_count})")
+                logger.info(f"✅ [{current_time}] إعادة تعيين عداد الأخطاء (كان: {error_count})")
                 error_count = 0
             
-            # 5. Проверяем сигнал shutdown
+            # 5. التحقق من إشارة الإيقاف
             if shutdown_event.is_set():
-                logger.info("📴 Keep alive получил сигнал shutdown, завершаю работу")
+                logger.info("📴 استلم الحفاظ على النشاط إشارة الإيقاف، إنهاء العمل")
                 break
             
-            # 6. Ждем до следующего keep alive - АГРЕССИВНО каждые 30 секунд!
-            sleep_time = 30  # 30 секунд для предотвращения засыпания Render
-            logger.info(f"⏳ [{current_time}] Следующий keep alive через {sleep_time} секунд")
+            # 6. انتظار حتى الحفاظ التالي على النشاط - بقوة كل 30 ثانية!
+            sleep_time = 30  # 30 ثانية لمنع سكون Render
+            logger.info(f"⏳ [{current_time}] الحفاظ التالي على النشاط بعد {sleep_time} ثانية")
             
-            # Разбиваем ожидание на части для возможности быстрого завершения
+            # تقسيم الانتظار لأجزاء للسماح بالإنهاء السريع
             for _ in range(sleep_time):
                 if shutdown_event.is_set():
                     break
@@ -482,62 +480,62 @@ def render_keep_alive():
         except Exception as e:
             error_count += 1
             current_time = time.strftime("%H:%M:%S")
-            logger.error(f"❌ [{current_time}] Ошибка в keep alive #{error_count}: {e}")
+            logger.error(f"❌ [{current_time}] خطأ في الحفاظ على النشاط #{error_count}: {e}")
             
-            # При накоплении ошибок увеличиваем интервал, но не слишком сильно
+            # عند تراكم الأخطاء، زيادة الفاصل ولكن ليس بشكل كبير
             if error_count > 5:
-                logger.warning(f"⚠️ [{current_time}] Много ошибок, увеличиваю интервал до 2 минут")
-                for _ in range(120):  # 2 минуты
+                logger.warning(f"⚠️ [{current_time}] أخطاء كثيرة، زيادة الفاصل إلى دقيقتين")
+                for _ in range(120):  # دقيقتان
                     if shutdown_event.is_set():
                         break
                     time.sleep(1)
             else:
-                for _ in range(60):  # 1 минута
+                for _ in range(60):  # دقيقة واحدة
                     if shutdown_event.is_set():
                         break
                     time.sleep(1)
     
-    logger.info("✅ Агрессивный Render Keep Alive завершен")
+    logger.info("✅ تم إنهاء الحفاظ على النشاط لـ Render")
 
 if __name__ == '__main__':
-    # Записываем время старта приложения
+    # تسجيل وقت بدء التطبيق
     app._start_time = time.time()
-    logger.info(f"🚀 Приложение запущено в {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"🚀 تم تشغيل التطبيق في {time.strftime('%Y-%m-%d %H:%M:%S')}")
     
     try:
-        # Автоматически запускаем бота при старте приложения
+        # تشغيل البوت تلقائياً عند بدء التطبيق
         bot_thread = threading.Thread(target=run_bot_in_thread, daemon=True)
         bot_thread.start()
         bot_running = True
-        logger.info("🤖 Бот запущен автоматически")
+        logger.info("🤖 تم تشغيل البوت تلقائياً")
     except Exception as e:
-        logger.error(f"❌ Не удалось запустить бота автоматически: {e}")
+        logger.error(f"❌ فشل في تشغيل البوت تلقائياً: {e}")
     
-    # Запускаем keep alive в отдельном потоке
+    # تشغيل الحفاظ على النشاط في خيط منفصل
     try:
         keep_alive_thread = threading.Thread(target=render_keep_alive, daemon=True)
         keep_alive_thread.start()
-        logger.info("💓 Keep alive запущен автоматически")
+        logger.info("💓 تم تشغيل الحفاظ على النشاط تلقائياً")
     except Exception as e:
-        logger.error(f"❌ Не удалось запустить keep alive автоматически: {e}")
+        logger.error(f"❌ فشل في تشغيل الحفاظ على النشاط تلقائياً: {e}")
     
-    # Запускаем Flask приложение с улучшенными настройками
+    # تشغيل تطبيق Flask مع إعدادات محسّنة
     try:
-        logger.info("🌐 Запуск Flask приложения...")
-        # Используем host='0.0.0.0' для доступности извне
-        # Используем port из переменных окружения или 10000 по умолчанию
+        logger.info("🌐 تشغيل تطبيق Flask...")
+        # استخدام host='0.0.0.0' للوصول من الخارج
+        # استخدام port من متغيرات البيئة أو 10000 افتراضياً
         port = int(os.environ.get('PORT', 10000))
         
         app.run(
             host='0.0.0.0',
             port=port,
-            debug=False,  # Отключаем debug для production
-            use_reloader=False,  # Отключаем reloader для предотвращения дублирования
-            threaded=True  # Включаем многопоточность
+            debug=False,  # إيقاف التصحيح للإنتاج
+            use_reloader=False,  # إيقاف إعادة التحميل لمنع التكرار
+            threaded=True  # تفعيل تعدد الخيوط
         )
     except Exception as e:
-        logger.error(f"❌ Ошибка запуска Flask приложения: {e}")
-        # Если Flask не запустился, ждем завершения других потоков
+        logger.error(f"❌ خطأ في تشغيل تطبيق Flask: {e}")
+        # إذا لم يتم تشغيل Flask، انتظار انتهاء الخيوط الأخرى
         shutdown_event.set()
         if bot_thread and bot_thread.is_alive():
             bot_thread.join(timeout=10)
